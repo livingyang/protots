@@ -1,0 +1,41 @@
+{
+    # 登录协议
+    LoginRsp: {},
+
+    # frame 通知
+    FrameNotice: {
+        ms: 0
+    },
+
+    # 用户数据
+    UserDataNotice: {
+        account: ''
+    },
+
+    # 匹配成功
+    MatchingSuccessRsp: {
+        selfAccount: '',
+        accountList: ['']
+    },
+
+    # 获取钱包
+    GetWalletReq: {
+        money: 0,
+        diamond: 0
+    },
+
+    # 测试复杂数据
+    TestObjectReq: {
+        obj: {num: 1},
+        array: [
+            {
+                str: '',
+                subArray: [0],
+                subObj: {
+                    num: 1
+                }
+            }
+        ],
+        nullobj: null
+    }
+}

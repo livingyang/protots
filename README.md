@@ -1,2 +1,0 @@
-# protots
-Protocol typescript
