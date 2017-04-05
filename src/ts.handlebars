@@ -1,18 +1,9 @@
-export enum MessageId {
-    Invalid = -1,
-    LoginRsp,
-    FrameNotice,
-    UserDataNotice,
-    MatchingSuccessRsp,
-    GetWalletReq,
-    TestObjectReq,
-}
-
 export type Buffer = any[]; // Buffer[0] == MessageId
+
 export class Message {
     buffer: Buffer;
     getId(): number {
-        return MessageId.Invalid;
+        return (this.buffer != null && this.buffer.length > 0) ? this.buffer[0] : -1;
     }
 }
 
@@ -30,10 +21,6 @@ export function GenerateMessage(buffer: Buffer) {
             message.buffer = buffer;
             return message;
         }
-        else {
-            console.log("GenerateMessage faild, buffer: " + JSON.stringify(buffer));
-            return new Message();
-        }
     }
     
     return null;
@@ -46,7 +33,7 @@ interface Invoker {
     handler: Function;
 }
 
-export class MessageDispatcher {
+export class WebSocketMessageHandle {
     eventInvokerMap: {[id: number]: Invoker[]} = {};
 
     emit(message: Message) {
@@ -83,33 +70,4 @@ export class MessageDispatcher {
     }
 }
 
-export var defaultMessageDispatcher = new MessageDispatcher();
-
-export class LoginRsp extends Message {
-    buffer: [MessageId] = [MessageId.LoginRsp];
-    static on(observer, handle: (m: LoginRsp) => void) {
-        defaultMessageDispatcher.on(MessageId.LoginRsp, observer, handle);
-    }
-    static off(observer, handle: (m: LoginRsp) => void) {
-        defaultMessageDispatcher.off(MessageId.LoginRsp, observer, handle);
-    }
-}
-MessageMap[MessageId.LoginRsp] = LoginRsp;
-
-export class FrameNotice extends Message {
-    buffer: [MessageId, number] = [MessageId.FrameNotice, 0];
-    static on(observer, handle: (m: FrameNotice) => void) {
-        defaultMessageDispatcher.on(MessageId.FrameNotice, observer, handle);
-    }
-
-    static off(observer, handle: (m: FrameNotice) => void) {
-        defaultMessageDispatcher.off(MessageId.FrameNotice, observer, handle);
-    }
-    get ms() {
-        return this.buffer[1];
-    }
-    set ms(ms: number) {
-        this.buffer[1] = ms;
-    }
-}
-MessageMap[MessageId.FrameNotice] = FrameNotice;
+// ------------- WebSocket Message 
