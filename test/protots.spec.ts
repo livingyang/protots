@@ -3,7 +3,7 @@ import * as assert from 'assert';
 import * as handlebars from 'handlebars';
 
 import {ConvertYaml} from '../tools/generator';
-import {GenerateMessage, FrameNotice, LoginRsp} from '../src/protots.yaml'
+import {GenerateMessage, FrameNotice, LoginRsp, DefaultMessageDispatcher} from '../src/protots.yaml'
 
 describe('protots', function() {
 
@@ -16,7 +16,33 @@ describe('protots', function() {
 
     it('handlebars 1', function() {
         let f = new FrameNotice();
-        console.log(f);
+        
+        function f1(m) {
+            console.log('f1');
+            console.log(m);
+        }
+        FrameNotice.on(f1);
+
+        function f2(m) {
+            console.log('f2');
+            console.log(m);
+        }
+        FrameNotice.on(f2)
+
+        console.log('emit1');
+        DefaultMessageDispatcher.emit(f);
+
+        FrameNotice.off(f1);
+        console.log('emit2');
+        DefaultMessageDispatcher.emit(f);
+
+        FrameNotice.off(f1);
+        console.log('emit3');
+        DefaultMessageDispatcher.emit(f);
+
+        FrameNotice.off(f2);
+        console.log('emit4');
+        DefaultMessageDispatcher.emit(f);
         
     })
 

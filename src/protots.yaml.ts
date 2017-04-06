@@ -1,19 +1,14 @@
-export enum MessageId {
+export enum MessageType {
     Invalid = -1,
     LoginRsp,
     FrameNotice,
-    UserDataNotice,
-    MatchingSuccessRsp,
-    GetWalletReq,
-    TestObjectReq,
 }
 
-export type Buffer = any[]; // Buffer[0] == MessageId
+export type Buffer = any[] // Buffer: [MessageType, any...]
 export class Message {
     buffer: Buffer;
-    getId(): number {
-        return MessageId.Invalid;
-    }
+    static get Id() { return MessageType.Invalid; }
+    get Id() { return MessageType.Invalid; }
 }
 
 interface MessageClass {
@@ -31,79 +26,95 @@ export function GenerateMessage(buffer: Buffer) {
             return message;
         }
         else {
-            console.log("GenerateMessage faild, buffer: " + JSON.stringify(buffer));
-            return new Message();
+            throw "GenerateMessage faild, buffer: " + JSON.stringify(buffer);
         }
     }
     
     return null;
 }
 
-// ------------- WebSocket Message Handle
-
-interface Invoker {
-    target;
-    handler: Function;
-}
+type Invoker = [Function, any]; // [handler, observer]
+type InvokerList = Invoker[];
 
 export class MessageDispatcher {
-    eventInvokerMap: {[id: number]: Invoker[]} = {};
+    eventInvokerMap: {[id: number]: InvokerList} = {};
 
     emit(message: Message) {
         if (message != null) {
-            for (let invoker of this.getInvokerList(message.getId())) {
-                invoker.handler.call(invoker.target, message);
+            for (let invoker of this.getInvokerList(message.Id)) {
+                if (invoker != null && invoker[0] != null) {
+                    invoker[0].call(invoker[1], message);
+                }
             }
         }
     }
 
-    getInvokerList(event: number) {
+    getInvokerList(event: MessageType) {
         return this.eventInvokerMap[event] || [];
     }
 
-    on(event: number | string, target, handler: Function = target[event]) {
+    on(event: MessageType, handler: Function, observer) {
         if (handler == null) {
-            throw `Client.on event: ${event}, handle is null`;
-        }
-        if (this.eventInvokerMap[event] == null) {
-            this.eventInvokerMap[event] = [];
+            return;
         }
 
-        if (target != null) {
-            this.eventInvokerMap[event].push({ target: target, handler: handler });
+        let invokerList = this.eventInvokerMap[event];
+        if (invokerList == null) {
+            invokerList = this.eventInvokerMap[event] = [];
         }
+
+        for (let i = invokerList.length - 1; i >= 0; --i) {
+            if (invokerList[i] == null) {
+                invokerList[i] = [handler, observer];
+                return;
+            }
+        }
+        
+        invokerList.push([handler, observer]);
     }
 
-    off(event: number | string, target, handler: Function = target[event]) {
-        if (this.eventInvokerMap[event] != null) {
-            this.eventInvokerMap[event] = this.eventInvokerMap[event].filter((v, i, a) => {
-                return (target !== v.target || handler !== v.handler);
-            });
+    off(event: MessageType, handler: Function, observer) {
+        let invokerList: InvokerList = this.eventInvokerMap[event];
+        if (invokerList != null) {
+            for (let i = invokerList.length - 1; i >= 0; --i) {
+                if (invokerList[i] != null
+                && invokerList[i][0] === handler
+                && invokerList[i][1] === observer) {
+                    invokerList[i] = null;
+                    return;
+                }
+            }
         }
     }
 }
 
-export var defaultMessageDispatcher = new MessageDispatcher();
+export var DefaultMessageDispatcher = new MessageDispatcher();
 
 export class LoginRsp extends Message {
-    buffer: [MessageId] = [MessageId.LoginRsp];
-    static on(observer, handle: (m: LoginRsp) => void) {
-        defaultMessageDispatcher.on(MessageId.LoginRsp, observer, handle);
+    buffer: [MessageType] = [MessageType.LoginRsp];
+    static get Id() { return MessageType.LoginRsp; }
+    get Id() { return MessageType.LoginRsp; }
+
+    static on(handle: (m: LoginRsp) => void, observer = null) {
+        DefaultMessageDispatcher.on(MessageType.LoginRsp, handle, observer);
     }
-    static off(observer, handle: (m: LoginRsp) => void) {
-        defaultMessageDispatcher.off(MessageId.LoginRsp, observer, handle);
+    static off(handle: (m: LoginRsp) => void, observer = null) {
+        DefaultMessageDispatcher.off(MessageType.LoginRsp, handle, observer);
     }
 }
-MessageMap[MessageId.LoginRsp] = LoginRsp;
+MessageMap[MessageType.LoginRsp] = LoginRsp;
 
 export class FrameNotice extends Message {
-    buffer: [MessageId, number] = [MessageId.FrameNotice, 0];
-    static on(observer, handle: (m: FrameNotice) => void) {
-        defaultMessageDispatcher.on(MessageId.FrameNotice, observer, handle);
+    buffer: [MessageType, number] = [MessageType.FrameNotice, 0];
+    static get Id() { return MessageType.FrameNotice; }
+    get Id() { return MessageType.FrameNotice; }
+
+    static on(handle: (m: FrameNotice) => void, observer = null) {
+        DefaultMessageDispatcher.on(MessageType.FrameNotice, handle, observer);
     }
 
-    static off(observer, handle: (m: FrameNotice) => void) {
-        defaultMessageDispatcher.off(MessageId.FrameNotice, observer, handle);
+    static off(handle: (m: FrameNotice) => void, observer = null) {
+        DefaultMessageDispatcher.off(MessageType.FrameNotice, handle, observer);
     }
     get ms() {
         return this.buffer[1];
@@ -112,4 +123,4 @@ export class FrameNotice extends Message {
         this.buffer[1] = ms;
     }
 }
-MessageMap[MessageId.FrameNotice] = FrameNotice;
+MessageMap[MessageType.FrameNotice] = FrameNotice;
